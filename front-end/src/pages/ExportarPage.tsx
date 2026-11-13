@@ -2,13 +2,16 @@ import { ArrowLeft } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { toast } from 'sonner'
+import type * as XLSX from 'xlsx'
 import { useEmpresa, useExtrato, useSalvarEmpresa } from '../api/consultas'
 import type { Empresa, Extrato, OpcoesArquivo } from '../api/tipos'
+import { montarAbas, montarExcel } from '../contabil/excel'
 import { dadosDaEmpresa } from '../contabil/padroes'
 import { montarLinhas, montarTxt, nomeBase, paraAnsi } from '../contabil/txt'
 import { salvarArquivo } from '../lib/download'
-import { formatarMoeda, plural } from '../lib/formatar'
+import { formatarMoeda, formatarValor, plural } from '../lib/formatar'
 import { Aviso, Botao, Carregando, Cartao, CartaoNumero, Marcador, Selecao, TituloCartao, Campo } from '../components/ui'
+import { cx } from '../components/estilos'
 
 export function ExportarPage() {
   const id = Number(useParams().id)
@@ -30,12 +33,14 @@ const OPCOES_SEPARADOR = [
 function Exportacao({ extratos, empresa, titulo, voltar }: { extratos: Extrato[]; empresa: Empresa; titulo: string; voltar: string }) {
   const salvarEmpresa = useSalvarEmpresa()
   const [opcoes, setOpcoes] = useState<OpcoesArquivo>(empresa.opcoes)
+  const [aba, setAba] = useState('TXT')
   const opcoesAlteradas = JSON.stringify(opcoes) !== JSON.stringify(empresa.opcoes)
 
   // as opções da tela valem para a prévia na hora, mesmo antes de salvar na empresa
   const comOpcoes = { ...empresa, opcoes }
   const linhas = montarLinhas(extratos, comOpcoes)
   const txt = montarTxt(linhas, opcoes)
+  const abas = montarAbas(linhas, extratos, comOpcoes)
   const nome = nomeBase(empresa, linhas)
 
   const total = linhas.reduce((t, l) => t + l.lancamento.valor, 0)
@@ -62,10 +67,17 @@ function Exportacao({ extratos, empresa, titulo, voltar }: { extratos: Extrato[]
     }
   }
 
+  async function baixarExcel() {
+    const tipo = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    salvarArquivo(new Blob([await montarExcel(abas)], { type: tipo }), `extrato_${nome}.xlsx`)
+  }
+
   async function salvarOpcoes() {
     await salvarEmpresa.mutateAsync({ id: empresa.id, dados: { ...dadosDaEmpresa(empresa), opcoes } })
     toast.success('Opções salvas na empresa.')
   }
+
+  const abaAtual = abas.find((a) => a.nome === aba)
 
   return (
     <>
@@ -92,21 +104,52 @@ function Exportacao({ extratos, empresa, titulo, voltar }: { extratos: Extrato[]
         </div>
       )}
 
-      <Cartao className="mt-4 p-5">
-        <p className="font-semibold">Arquivo TXT</p>
-        <p className="mt-0.5 text-[13px] text-suave">Leiaute da planilha de importação do Domínio, uma linha por lançamento.</p>
-        <div className="mt-4 flex gap-2">
-          <Botao onClick={baixarTxt} disabled={!linhas.length}>
-            Baixar TXT
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <Cartao className="p-5">
+          <p className="font-semibold">Arquivo TXT</p>
+          <p className="mt-0.5 text-[13px] text-suave">Leiaute da planilha de importação do Domínio, uma linha por lançamento.</p>
+          <div className="mt-4 flex gap-2">
+            <Botao onClick={baixarTxt} disabled={!linhas.length}>
+              Baixar TXT
+            </Botao>
+            <Botao variante="secundario" onClick={copiarTxt} disabled={!linhas.length}>
+              Copiar
+            </Botao>
+          </div>
+        </Cartao>
+        <Cartao className="p-5">
+          <p className="font-semibold">Planilha Excel</p>
+          <p className="mt-0.5 text-[13px] text-suave">Datas e valores como número. Escolha as abas:</p>
+          <div className="mt-3 flex flex-wrap gap-4">
+            <Marcador rotulo="Importação" checked={opcoes.abaImportacao} onChange={(e) => mudar('abaImportacao', e.target.checked)} />
+            <Marcador rotulo="Extrato" checked={opcoes.abaExtrato} onChange={(e) => mudar('abaExtrato', e.target.checked)} />
+            <Marcador rotulo="Resumo" checked={opcoes.abaResumo} onChange={(e) => mudar('abaResumo', e.target.checked)} />
+          </div>
+          <Botao className="mt-4" onClick={baixarExcel} disabled={!abas.length}>
+            Baixar Excel
           </Botao>
-          <Botao variante="secundario" onClick={copiarTxt} disabled={!linhas.length}>
-            Copiar
-          </Botao>
-        </div>
-      </Cartao>
+        </Cartao>
+      </div>
 
       <Cartao className="mt-4 overflow-hidden">
-        <PreviaTxt texto={txt} />
+        <div className="flex gap-1 overflow-x-auto border-b border-linha px-3 pt-2" role="tablist">
+          {['TXT', ...abas.map((a) => a.nome)].map((nomeAba) => (
+            <button
+              key={nomeAba}
+              type="button"
+              role="tab"
+              aria-selected={aba === nomeAba}
+              onClick={() => setAba(nomeAba)}
+              className={cx(
+                '-mb-px border-b-2 px-3 py-2 text-[13px] font-medium whitespace-nowrap',
+                aba === nomeAba ? 'border-marca text-marca-escura' : 'border-transparent text-suave hover:text-texto',
+              )}
+            >
+              {nomeAba}
+            </button>
+          ))}
+        </div>
+        {abaAtual ? <PreviaPlanilha cabecalho={abaAtual.cabecalho} linhas={abaAtual.linhas} /> : <PreviaTxt texto={txt} />}
       </Cartao>
 
       <Cartao className="mt-4">
@@ -188,5 +231,50 @@ function PreviaTxt({ texto }: { texto: string }) {
         </div>
       ))}
     </pre>
+  )
+}
+
+/** Mostra a célula como o Excel mostraria (data, valor com vírgula ou texto). */
+function textoCelula(celula: string | number | null | XLSX.CellObject): string {
+  if (celula == null) return ''
+  if (typeof celula !== 'object') return String(celula)
+  if (celula.z === 'dd/mm/yyyy') {
+    const data = new Date(Date.UTC(1899, 11, 30) + Number(celula.v) * 86_400_000)
+    return data.toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+  }
+  return formatarValor(Number(celula.v))
+}
+
+function PreviaPlanilha({ cabecalho, linhas }: { cabecalho: string[]; linhas: (string | number | null | XLSX.CellObject)[][] }) {
+  return (
+    <div className="max-h-[340px] overflow-auto">
+      <table className="text-xs whitespace-nowrap">
+        <thead>
+          <tr className="bg-campo text-left">
+            <th className="w-9 border-r border-b border-linha px-2 py-1.5 text-center font-normal text-apagado">1</th>
+            {cabecalho.map((c) => (
+              <th key={c} className="border-r border-b border-linha px-3 py-1.5 font-semibold">
+                {c}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {linhas.map((linha, i) => (
+            <tr key={i}>
+              <td className="border-r border-b border-linha bg-campo px-2 py-1.5 text-center text-apagado">{i + 2}</td>
+              {linha.map((celula, j) => (
+                <td
+                  key={j}
+                  className={cx('border-r border-b border-linha px-3 py-1.5', typeof celula === 'object' && celula?.z !== 'dd/mm/yyyy' && 'text-right tabular-nums')}
+                >
+                  {textoCelula(celula)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }

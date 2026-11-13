@@ -1,6 +1,6 @@
 import { ArrowLeft, Eye, EyeOff, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { baixar } from '../api/cliente'
 import { useEmpresa, useExcluirExtrato, useExtrato, useSalvarEmpresa, useSalvarRevisao } from '../api/consultas'
@@ -258,7 +258,7 @@ function Revisao({ extrato, empresa, aoFechar }: { extrato: Extrato; empresa: Em
           </Aviso>
         )}
         {contaBanco && !contaBanco.codigo && (
-          <Aviso tipo="alerta">
+          <Aviso tipo="alerta" acoes={<Link to={`/empresas/${empresa.id}`} className="font-medium underline">Abrir empresa</Link>}>
             Falta o código contábil da conta {contaBanco.conta} no cadastro da empresa.
           </Aviso>
         )}

@@ -3,7 +3,10 @@ import { NavLink, Outlet } from 'react-router'
 import { useAuth } from '../auth/contexto'
 import { cx } from './estilos'
 
-const itens = [{ para: '/', rotulo: 'Painel', fim: true }]
+const itens = [
+  { para: '/', rotulo: 'Painel', fim: true },
+  { para: '/empresas', rotulo: 'Empresas' },
+]
 
 
 export function Layout() {

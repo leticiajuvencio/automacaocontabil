@@ -5,12 +5,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './cliente'
 import type {
+  ConferenciaChave,
   DadosEmpresa,
   DadosNovoExtrato,
   Empresa,
+  EnvioDominio,
   Extrato,
   ExtratoResumo,
   Lancamento,
+  StatusDominio,
   StatusExtrato,
 } from './tipos'
 
@@ -109,5 +112,68 @@ export function useExcluirExtrato() {
   return useMutation({
     mutationFn: (id: number) => api<void>(`/extratos/${id}`, { metodo: 'DELETE' }),
     onSuccess: recarregar,
+  })
+}
+
+// ---------- Domínio ----------
+
+export function useStatusDominio() {
+  return useQuery({ queryKey: ['dominio'], queryFn: () => api<StatusDominio>('/dominio/status') })
+}
+
+export function useConferirChave(empresaId: number) {
+  return useMutation({
+    mutationFn: (chave: string) =>
+      api<ConferenciaChave>(`/empresas/${empresaId}/dominio/conferir`, { metodo: 'POST', corpo: { chave } }),
+  })
+}
+
+export function useAtivarDominio(empresaId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (chave: string) =>
+      api<Empresa>(`/empresas/${empresaId}/dominio/ativar`, { metodo: 'POST', corpo: { chave } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['empresa', empresaId] })
+      queryClient.invalidateQueries({ queryKey: ['empresas'] })
+      queryClient.invalidateQueries({ queryKey: ['dominio'] })
+    },
+  })
+}
+
+export function useDesvincularDominio(empresaId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api<Empresa>(`/empresas/${empresaId}/dominio`, { metodo: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['empresa', empresaId] })
+      queryClient.invalidateQueries({ queryKey: ['empresas'] })
+      queryClient.invalidateQueries({ queryKey: ['dominio'] })
+    },
+  })
+}
+
+export function useEnviosDominio() {
+  return useQuery({ queryKey: ['envios'], queryFn: () => api<EnvioDominio[]>('/dominio/envios') })
+}
+
+export function useEnviarNotas() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ empresaId, arquivos }: { empresaId: number; arquivos: File[] }) => {
+      const formulario = new FormData()
+      formulario.append('empresaId', String(empresaId))
+      for (const arquivo of arquivos) formulario.append('arquivos', arquivo)
+      return api<EnvioDominio>('/dominio/envios', { metodo: 'POST', formulario })
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['envios'] }),
+  })
+}
+
+export function useConsultarEnvio() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api<EnvioDominio>(`/dominio/envios/${id}/consultar`, { metodo: 'POST' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['envios'] }),
   })
 }

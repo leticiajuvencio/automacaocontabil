@@ -6,11 +6,13 @@ import { cx } from './estilos'
 const itens = [
   { para: '/', rotulo: 'Painel', fim: true },
   { para: '/empresas', rotulo: 'Empresas' },
+  { para: '/usuarios', rotulo: 'Usuários', soAdmin: true },
 ]
 
 
 export function Layout() {
   const { sessao, sair } = useAuth()
+  const admin = sessao?.usuario.admin ?? false
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -23,7 +25,9 @@ export function Layout() {
           </NavLink>
 
           <nav className="order-last flex w-full gap-1 overflow-x-auto sm:order-none sm:w-auto sm:flex-1">
-            {itens.map(({ para, rotulo, fim }) => (
+            {itens
+              .filter((item) => !item.soAdmin || admin)
+              .map(({ para, rotulo, fim }) => (
                 <NavLink
                   key={para}
                   to={para}

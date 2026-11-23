@@ -15,6 +15,7 @@ import type {
   Lancamento,
   StatusDominio,
   StatusExtrato,
+  Usuario,
 } from './tipos'
 
 // ---------- Empresas ----------
@@ -175,5 +176,28 @@ export function useConsultarEnvio() {
   return useMutation({
     mutationFn: (id: string) => api<EnvioDominio>(`/dominio/envios/${id}/consultar`, { metodo: 'POST' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['envios'] }),
+  })
+}
+
+// ---------- Usuários ----------
+
+export function useUsuarios() {
+  return useQuery({ queryKey: ['usuarios'], queryFn: () => api<Usuario[]>('/usuarios') })
+}
+
+export function useCriarUsuario() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (dados: { nome: string; email: string; senha: string; admin: boolean }) =>
+      api<Usuario>('/usuarios', { metodo: 'POST', corpo: dados }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['usuarios'] }),
+  })
+}
+
+export function useExcluirUsuario() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api<void>(`/usuarios/${id}`, { metodo: 'DELETE' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['usuarios'] }),
   })
 }

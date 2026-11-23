@@ -6,6 +6,7 @@ import { EmpresasPage } from './pages/EmpresasPage'
 import { ExportarPage } from './pages/ExportarPage'
 import { LoginPage } from './pages/LoginPage'
 import { PainelPage } from './pages/PainelPage'
+import { UsuariosPage } from './pages/UsuariosPage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([
           { path: 'extratos/:id/exportar', element: <ExportarPage /> },
           { path: 'empresas', element: <EmpresasPage /> },
           { path: 'empresas/:id', element: <EmpresaPage /> },
+          { path: 'usuarios', element: <UsuariosPage /> },
         ],
       },
     ],

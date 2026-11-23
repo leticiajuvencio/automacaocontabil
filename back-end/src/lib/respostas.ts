@@ -111,3 +111,23 @@ function lancamentoParaApi(l: LinhaExtrato) {
     contrapartida: l.contrapartida,
   }
 }
+
+// ---------- Envio ao Domínio ----------
+
+export const incluirEnvio = {
+  empresa: { select: { razaoSocial: true } },
+} satisfies Prisma.EnvioDominioInclude
+
+type EnvioDoBanco = Prisma.EnvioDominioGetPayload<{ include: typeof incluirEnvio }>
+
+export function envioParaApi(e: EnvioDoBanco) {
+  return {
+    id: e.id,
+    empresaId: e.empresaId,
+    empresaNome: e.empresa.razaoSocial,
+    arquivos: e.arquivos,
+    enviadoEm: e.enviadoEm.toISOString(),
+    mensagem: e.mensagem,
+    consultadoEm: e.consultadoEm?.toISOString() ?? null,
+  }
+}

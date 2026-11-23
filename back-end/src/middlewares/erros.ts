@@ -24,14 +24,16 @@ export function tratarErros(erro: unknown, _req: Request, res: Response, _next: 
     return
   }
 
-  // problemas no envio do PDF
+  // problemas no envio de arquivos (PDF do extrato ou XML das notas)
   if (erro instanceof multer.MulterError) {
     if (erro.code === 'LIMIT_FILE_SIZE') {
-      res.status(413).json({ erro: `O PDF passa do limite de ${env.UPLOAD_MAX_MB} MB.` })
+      res.status(413).json({ erro: `O arquivo passa do limite de ${env.UPLOAD_MAX_MB} MB.` })
     } else if (erro.code === 'LIMIT_FIELD_VALUE') {
-      res.status(413).json({ erro: 'O extrato tem dados demais para enviar de uma vez.' })
+      res.status(413).json({ erro: 'Os dados enviados são grandes demais.' })
+    } else if (erro.code === 'LIMIT_FILE_COUNT') {
+      res.status(400).json({ erro: 'Arquivos demais de uma vez.' })
     } else {
-      res.status(400).json({ erro: 'Envie um único PDF no campo "arquivo".' })
+      res.status(400).json({ erro: 'Arquivo enviado no campo errado.' })
     }
     return
   }

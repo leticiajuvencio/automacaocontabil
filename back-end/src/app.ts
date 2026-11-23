@@ -6,6 +6,7 @@ import { env } from './env.js'
 import { exigirAdmin, exigirLogin } from './middlewares/auth.js'
 import { rotaNaoEncontrada, tratarErros } from './middlewares/erros.js'
 import { authRoutes } from './routes/auth.routes.js'
+import { dominioRoutes, vinculoRoutes } from './routes/dominio.routes.js'
 import { empresasRoutes } from './routes/empresas.routes.js'
 import { extratosRoutes } from './routes/extratos.routes.js'
 import { usuariosRoutes } from './routes/usuarios.routes.js'
@@ -28,8 +29,10 @@ export function criarApp() {
 
   // login é público; o resto só com token
   app.use('/api/auth', authRoutes)
+  app.use('/api/empresas/:id/dominio', exigirLogin, vinculoRoutes)
   app.use('/api/empresas', exigirLogin, empresasRoutes)
   app.use('/api/extratos', exigirLogin, extratosRoutes)
+  app.use('/api/dominio', exigirLogin, dominioRoutes)
   // a tela de usuários é só de administrador
   app.use('/api/usuarios', exigirLogin, exigirAdmin, usuariosRoutes)
 

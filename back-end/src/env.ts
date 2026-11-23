@@ -9,6 +9,10 @@ const schema = z.object({
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   UPLOAD_DIR: z.string().default('uploads'),
   UPLOAD_MAX_MB: z.coerce.number().default(15),
+  // API do Domínio. Sem o client ID e o secret, a tela do Domínio avisa que falta configurar.
+  DOMINIO_CLIENT_ID: z.string().default(''),
+  DOMINIO_CLIENT_SECRET: z.string().default(''),
+  DOMINIO_AMBIENTE: z.enum(['homologacao', 'producao']).default('homologacao'),
 })
 
 const resultado = schema.safeParse(process.env)

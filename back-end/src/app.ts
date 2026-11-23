@@ -3,11 +3,12 @@ import express from 'express'
 import helmet from 'helmet'
 import { z } from 'zod'
 import { env } from './env.js'
-import { exigirLogin } from './middlewares/auth.js'
+import { exigirAdmin, exigirLogin } from './middlewares/auth.js'
 import { rotaNaoEncontrada, tratarErros } from './middlewares/erros.js'
 import { authRoutes } from './routes/auth.routes.js'
 import { empresasRoutes } from './routes/empresas.routes.js'
 import { extratosRoutes } from './routes/extratos.routes.js'
+import { usuariosRoutes } from './routes/usuarios.routes.js'
 
 // mensagens de validação do zod em português
 z.config(z.locales.pt())
@@ -29,6 +30,8 @@ export function criarApp() {
   app.use('/api/auth', authRoutes)
   app.use('/api/empresas', exigirLogin, empresasRoutes)
   app.use('/api/extratos', exigirLogin, extratosRoutes)
+  // a tela de usuários é só de administrador
+  app.use('/api/usuarios', exigirLogin, exigirAdmin, usuariosRoutes)
 
   app.use(rotaNaoEncontrada)
   app.use(tratarErros)

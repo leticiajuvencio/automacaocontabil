@@ -41,3 +41,9 @@ export async function exigirLogin(req: Request, _res: Response, next: NextFuncti
   req.usuario = usuario
   next()
 }
+
+// Middleware: só administrador passa (vem depois do exigirLogin)
+export function exigirAdmin(req: Request, _res: Response, next: NextFunction) {
+  if (!req.usuario?.admin) throw new HttpError(403, 'Só administradores podem fazer isso.')
+  next()
+}

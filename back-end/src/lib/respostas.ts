@@ -3,6 +3,17 @@ import { dateParaBr } from './datas.js'
 
 // Deixa os dados do banco no formato que o front espera (src/api/tipos.ts do front)
 
+// ---------- Usuário ----------
+
+// campos que podem ir para o front (a senha nunca vai)
+export const usuarioPublico = {
+  id: true,
+  nome: true,
+  email: true,
+  admin: true,
+  dataCadastro: true,
+} satisfies Prisma.UsuarioSistemaSelect
+
 // ---------- Empresa ----------
 
 export const incluirEmpresa = {

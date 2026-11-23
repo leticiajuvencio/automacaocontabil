@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import { z } from 'zod'
 import { env } from './env.js'
 import { rotaNaoEncontrada, tratarErros } from './middlewares/erros.js'
+import { authRoutes } from './routes/auth.routes.js'
 
 // mensagens de validação do zod em português
 z.config(z.locales.pt())
@@ -20,6 +21,9 @@ export function criarApp() {
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true })
   })
+
+  // login é público; o resto só com token
+  app.use('/api/auth', authRoutes)
 
   app.use(rotaNaoEncontrada)
   app.use(tratarErros)

@@ -22,6 +22,15 @@ async function pedir(url: string, opcoes: RequestInit) {
   }
 }
 
+// a resposta tem que ser JSON; se vier outra coisa, a API está com problema
+async function lerJson<T>(resposta: Response): Promise<T> {
+  try {
+    return (await resposta.json()) as T
+  } catch {
+    throw new HttpError(502, 'A API do Domínio respondeu algo inesperado. Tente de novo em instantes.')
+  }
+}
+
 // O token vale 24 h e a Domínio pede para gerar só 1 por dia para o sistema inteiro
 // (quem pede demais é bloqueado). Por isso ele fica salvo no banco e é reaproveitado.
 async function tokenDoDia(): Promise<string> {
@@ -46,8 +55,11 @@ async function tokenDoDia(): Promise<string> {
   })
   if (!resposta.ok) throw new HttpError(502, 'A Domínio não liberou o token. Confira o client ID e o client secret.')
 
-  const { access_token, expires_in } = (await resposta.json()) as { access_token: string; expires_in: number }
-  const token = { token: access_token, geradoEm: new Date(), expiraEm: new Date(Date.now() + expires_in * 1000) }
+  const { access_token, expires_in } = await lerJson<{ access_token?: string; expires_in?: number }>(resposta)
+  if (!access_token) throw new HttpError(502, 'A Domínio não devolveu o token.')
+  // a documentação diz que o token vale 24 horas
+  const validade = (expires_in ?? 86400) * 1000
+  const token = { token: access_token, geradoEm: new Date(), expiraEm: new Date(Date.now() + validade) }
   await prisma.tokenDominio.upsert({ where: { id: 1 }, create: { id: 1, ...token }, update: token })
   return access_token
 }
@@ -66,7 +78,7 @@ async function chamarApi<T>(caminho: string, chave: string, erroChave: string, o
     throw new HttpError(400, erroChave)
   }
   if (!resposta.ok) throw new HttpError(502, 'A API do Domínio está com problema. Tente de novo em instantes.')
-  return (await resposta.json()) as T
+  return lerJson<T>(resposta)
 }
 
 // GET activation/info: mostra de quem é a chave que o contador gerou no Onvio

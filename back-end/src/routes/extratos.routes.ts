@@ -10,7 +10,7 @@ import { env } from '../env.js'
 import { brParaDate, dataBrValida } from '../lib/datas.js'
 import { HttpError } from '../lib/httpError.js'
 import { extratoParaApi, incluirExtrato, incluirResumo, resumoParaApi } from '../lib/respostas.js'
-import { idParam, texto } from '../lib/validacao.js'
+import { idBanco, idParam, texto } from '../lib/validacao.js'
 
 export const extratosRoutes = Router()
 
@@ -52,7 +52,7 @@ const infoSchema = z.object({
 })
 
 const novoExtratoSchema = z.object({
-  empresaId: z.number().int().positive('Escolha a empresa cliente.'),
+  empresaId: idBanco,
   competencia: z.string().regex(/^(0[1-9]|1[0-2])\/\d{4}$/, 'Competência inválida (use mm/aaaa).'),
   banco: texto(60),
   metodo: texto(100),
@@ -69,7 +69,7 @@ const revisaoSchema = z.object({
 })
 
 const filtrosSchema = z.object({
-  empresaId: z.coerce.number().int().positive().optional(),
+  empresaId: idBanco.optional(),
   competencia: z.string().optional(),
   status: statusSchema.optional(),
 })

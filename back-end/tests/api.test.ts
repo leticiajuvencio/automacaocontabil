@@ -188,6 +188,26 @@ describe.skipIf(!urlTeste)('API', () => {
     })
   })
 
+  describe('erros viram mensagem, nunca erro 500', () => {
+    it('id grande demais para o banco', async () => {
+      const r = await request(app).get('/api/empresas/99999999999').set(comAdmin())
+      expect(r.status).toBe(400)
+    })
+
+    it('JSON quebrado', async () => {
+      const r = await request(app).post('/api/auth/login').set('Content-Type', 'application/json').send('{"email":')
+      expect(r.status).toBe(400)
+      expect(r.body.erro).toBe('Os dados enviados não estão em JSON válido.')
+    })
+
+    it('token sem usuário dentro', async () => {
+      const jwt = await import('jsonwebtoken')
+      const token = jwt.default.sign({}, process.env.JWT_SECRET!)
+      const r = await request(app).get('/api/empresas').set('Authorization', `Bearer ${token}`)
+      expect(r.status).toBe(401)
+    })
+  })
+
   describe('usuários', () => {
     let comumId: number
 
@@ -376,6 +396,11 @@ describe.skipIf(!urlTeste)('API', () => {
     it('só envia XML', async () => {
       const r = await request(app).post('/api/dominio/envios').set(comAdmin()).field('empresaId', String(empresaId)).attach('arquivos', pdf, 'nota.pdf')
       expect(r.status).toBe(415)
+
+      const grande = Buffer.concat([Buffer.from('<nfeProc>'), Buffer.alloc(3 * 1024 * 1024, ' ')])
+      const r2 = await request(app).post('/api/dominio/envios').set(comAdmin()).field('empresaId', String(empresaId)).attach('arquivos', grande, 'grande.xml')
+      expect(r2.status).toBe(413)
+      expect(r2.body.erro).toBe('Cada XML pode ter no máximo 2 MB.')
     })
 
     it('envia os XML com a integrationKey', async () => {

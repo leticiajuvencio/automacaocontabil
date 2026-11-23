@@ -30,6 +30,7 @@ export async function exigirLogin(req: Request, _res: Response, next: NextFuncti
   } catch {
     throw new HttpError(401, 'Sessão expirada. Entre de novo.')
   }
+  if (!Number.isInteger(usuarioId)) throw new HttpError(401, 'Sessão expirada. Entre de novo.')
 
   // o usuário pode ter sido excluído depois de fazer login
   const usuario = await prisma.usuarioSistema.findUnique({

@@ -11,7 +11,13 @@ export function rotaNaoEncontrada(_req: Request, res: Response) {
 }
 
 // Todo erro das rotas cai aqui e vira { erro: "mensagem" }, que é o que o front mostra
-export function tratarErros(erro: unknown, _req: Request, res: Response, _next: NextFunction) {
+export function tratarErros(erro: unknown, _req: Request, res: Response, next: NextFunction) {
+  // a resposta já começou a ir (ex.: o PDF parou no meio): não dá mais para mandar JSON
+  if (res.headersSent) {
+    next(erro)
+    return
+  }
+
   // erros que nós mesmas lançamos (404, 409...)
   if (erro instanceof HttpError) {
     res.status(erro.status).json({ erro: erro.message })
@@ -27,7 +33,8 @@ export function tratarErros(erro: unknown, _req: Request, res: Response, _next: 
   // problemas no envio de arquivos (PDF do extrato ou XML das notas)
   if (erro instanceof multer.MulterError) {
     if (erro.code === 'LIMIT_FILE_SIZE') {
-      res.status(413).json({ erro: `O arquivo passa do limite de ${env.UPLOAD_MAX_MB} MB.` })
+      const limite = erro.field === 'arquivos' ? 'Cada XML pode ter no máximo 2 MB.' : `O PDF passa do limite de ${env.UPLOAD_MAX_MB} MB.`
+      res.status(413).json({ erro: limite })
     } else if (erro.code === 'LIMIT_FIELD_VALUE') {
       res.status(413).json({ erro: 'Os dados enviados são grandes demais.' })
     } else if (erro.code === 'LIMIT_FILE_COUNT') {
@@ -38,21 +45,33 @@ export function tratarErros(erro: unknown, _req: Request, res: Response, _next: 
     return
   }
 
-  // JSON quebrado ou grande demais no corpo da requisição
-  if (erro instanceof Error && 'type' in erro) {
-    if (erro.type === 'entity.parse.failed') {
-      res.status(400).json({ erro: 'Os dados enviados não estão em JSON válido.' })
+  if (erro instanceof Prisma.PrismaClientKnownRequestError) {
+    // valor repetido numa coluna UNIQUE (ex.: e-mail ou CNPJ)
+    if (erro.code === 'P2002') {
+      res.status(409).json({ erro: 'Já existe um cadastro com esses dados.' })
       return
     }
-    if (erro.type === 'entity.too.large') {
-      res.status(413).json({ erro: 'Os dados enviados são grandes demais.' })
+    // ainda tem registro ligado a este (chave estrangeira)
+    if (erro.code === 'P2003') {
+      res.status(409).json({ erro: 'Não dá para apagar: ainda tem cadastro ligado a este.' })
+      return
+    }
+    // o registro sumiu entre a busca e a gravação (alguém apagou ao mesmo tempo)
+    if (erro.code === 'P2025') {
+      res.status(404).json({ erro: 'Registro não encontrado.' })
       return
     }
   }
 
-  // valor repetido numa coluna UNIQUE (ex.: e-mail ou CNPJ)
-  if (erro instanceof Prisma.PrismaClientKnownRequestError && erro.code === 'P2002') {
-    res.status(409).json({ erro: 'Já existe um cadastro com esses dados.' })
+  // erros do próprio Express ao ler o corpo (JSON quebrado, grande demais...)
+  const status = (erro as { status?: unknown })?.status
+  if (typeof status === 'number' && status >= 400 && status < 500) {
+    const tipo = (erro as { type?: unknown }).type
+    const mensagens: Record<string, string> = {
+      'entity.parse.failed': 'Os dados enviados não estão em JSON válido.',
+      'entity.too.large': 'Os dados enviados são grandes demais.',
+    }
+    res.status(status).json({ erro: mensagens[String(tipo)] ?? 'Requisição inválida.' })
     return
   }
 

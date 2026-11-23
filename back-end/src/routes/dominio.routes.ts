@@ -13,9 +13,10 @@ export const dominioRoutes = Router()
 // /api/empresas/:id/dominio -> vínculo de uma empresa com o Domínio
 export const vinculoRoutes = Router({ mergeParams: true })
 
+// XML de nota é pequeno; o limite baixo evita encher a memória com 50 arquivos de uma vez
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: env.UPLOAD_MAX_MB * 1024 * 1024, files: 50 },
+  limits: { fileSize: 2 * 1024 * 1024, files: 50 },
 })
 
 const chaveSchema = z.object({

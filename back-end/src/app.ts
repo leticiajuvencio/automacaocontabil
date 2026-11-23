@@ -7,6 +7,7 @@ import { exigirLogin } from './middlewares/auth.js'
 import { rotaNaoEncontrada, tratarErros } from './middlewares/erros.js'
 import { authRoutes } from './routes/auth.routes.js'
 import { empresasRoutes } from './routes/empresas.routes.js'
+import { extratosRoutes } from './routes/extratos.routes.js'
 
 // mensagens de validação do zod em português
 z.config(z.locales.pt())
@@ -27,6 +28,7 @@ export function criarApp() {
   // login é público; o resto só com token
   app.use('/api/auth', authRoutes)
   app.use('/api/empresas', exigirLogin, empresasRoutes)
+  app.use('/api/extratos', exigirLogin, extratosRoutes)
 
   app.use(rotaNaoEncontrada)
   app.use(tratarErros)

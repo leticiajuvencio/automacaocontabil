@@ -6,6 +6,7 @@ import { useEmpresa, useExcluirEmpresa, useSalvarEmpresa } from '../api/consulta
 import type { ContaBancaria, DadosEmpresa, Empresa, Regra } from '../api/tipos'
 import { dadosDaEmpresa, empresaEmBranco } from '../contabil/padroes'
 import { mascararCnpj } from '../lib/formatar'
+import { VinculoDominio } from '../components/VinculoDominio'
 import { Aviso, Botao, Campo, Carregando, Cartao, Selecao, TituloCartao } from '../components/ui'
 import { cx, estiloCampo } from '../components/estilos'
 
@@ -187,6 +188,11 @@ function FormularioEmpresa({ empresa }: { empresa?: Empresa }) {
           />
         </Cartao>
 
+        {empresa && (
+          <div className="lg:col-span-2">
+            <VinculoDominio empresa={empresa} />
+          </div>
+        )}
       </div>
 
       {empresa && (

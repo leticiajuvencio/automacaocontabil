@@ -1,7 +1,7 @@
 import { Building2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
 import { useEmpresas } from '../api/consultas'
-import { Aviso, Botao, CabecalhoPagina, Carregando, Cartao, Vazio } from '../components/ui'
+import { Aviso, Botao, CabecalhoPagina, Carregando, Cartao, Etiqueta, Vazio } from '../components/ui'
 import { iniciais, plural } from '../lib/formatar'
 
 export function EmpresasPage() {
@@ -41,6 +41,7 @@ export function EmpresasPage() {
                   <th className="px-4 py-3 font-normal">empresa</th>
                   <th className="px-4 py-3 font-normal">cód. Domínio</th>
                   <th className="px-4 py-3 font-normal">contas</th>
+                  <th className="px-4 py-3 font-normal">API Domínio</th>
                   <th className="px-4 py-3 font-normal">extratos</th>
                 </tr>
               </thead>
@@ -64,6 +65,9 @@ export function EmpresasPage() {
                       <td className="px-4 py-3">
                         {plural(e.contas.length, 'conta', 'contas')}
                         {semCodigo > 0 && <p className="text-xs text-alerta">{plural(semCodigo, 'sem código', 'sem código')}</p>}
+                      </td>
+                      <td className="px-4 py-3">
+                        {e.dominio.ativo ? <Etiqueta className="bg-ok-clara text-ok">vinculada</Etiqueta> : <Etiqueta>não vinculada</Etiqueta>}
                       </td>
                       <td className="px-4 py-3 tabular-nums">{e.totalExtratos}</td>
                     </tr>

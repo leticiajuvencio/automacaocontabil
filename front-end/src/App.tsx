@@ -1,6 +1,7 @@
 import { Navigate, createBrowserRouter } from 'react-router'
 import { Layout } from './components/Layout'
 import { RotaProtegida } from './components/RotaProtegida'
+import { DominioPage } from './pages/DominioPage'
 import { EmpresaPage } from './pages/EmpresaPage'
 import { EmpresasPage } from './pages/EmpresasPage'
 import { ExportarPage } from './pages/ExportarPage'
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
           { path: 'extratos/:id/exportar', element: <ExportarPage /> },
           { path: 'empresas', element: <EmpresasPage /> },
           { path: 'empresas/:id', element: <EmpresaPage /> },
+          { path: 'dominio', element: <DominioPage /> },
           { path: 'usuarios', element: <UsuariosPage /> },
         ],
       },

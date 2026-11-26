@@ -6,6 +6,7 @@ import { cx } from './estilos'
 const itens = [
   { para: '/', rotulo: 'Painel', fim: true },
   { para: '/empresas', rotulo: 'Empresas' },
+  { para: '/dominio', rotulo: 'Domínio' },
   { para: '/usuarios', rotulo: 'Usuários', soAdmin: true },
 ]
 

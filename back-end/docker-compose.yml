@@ -1,0 +1,16 @@
+# PostgreSQL para rodar o back no computador: npm run db:up
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: back-contabilidade-db
+    environment:
+      POSTGRES_USER: frasson
+      POSTGRES_PASSWORD: frasson
+      POSTGRES_DB: contabilidade_frasson
+    ports:
+      - "5434:5432"
+    volumes:
+      - dados:/var/lib/postgresql/data
+
+volumes:
+  dados:

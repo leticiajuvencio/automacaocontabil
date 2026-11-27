@@ -1,0 +1,43 @@
+import cors from 'cors'
+import express from 'express'
+import helmet from 'helmet'
+import { z } from 'zod'
+import { env } from './env.js'
+import { exigirAdmin, exigirLogin } from './middlewares/auth.js'
+import { rotaNaoEncontrada, tratarErros } from './middlewares/erros.js'
+import { authRoutes } from './routes/auth.routes.js'
+import { dominioRoutes, vinculoRoutes } from './routes/dominio.routes.js'
+import { empresasRoutes } from './routes/empresas.routes.js'
+import { extratosRoutes } from './routes/extratos.routes.js'
+import { usuariosRoutes } from './routes/usuarios.routes.js'
+
+// mensagens de validação do zod em português
+z.config(z.locales.pt())
+
+// Monta o Express (separado do server.ts para dar para testar sem abrir porta)
+export function criarApp() {
+  const app = express()
+
+  app.use(helmet()) // cabeçalhos de segurança
+  app.use(cors({ origin: env.CORS_ORIGIN }))
+  // a revisão manda todos os lançamentos de uma vez, por isso o limite maior
+  app.use(express.json({ limit: '20mb' }))
+
+  app.get('/api/health', (_req, res) => {
+    res.json({ ok: true })
+  })
+
+  // login é público; o resto só com token
+  app.use('/api/auth', authRoutes)
+  app.use('/api/empresas/:id/dominio', exigirLogin, vinculoRoutes)
+  app.use('/api/empresas', exigirLogin, empresasRoutes)
+  app.use('/api/extratos', exigirLogin, extratosRoutes)
+  app.use('/api/dominio', exigirLogin, dominioRoutes)
+  // a tela de usuários é só de administrador
+  app.use('/api/usuarios', exigirLogin, exigirAdmin, usuariosRoutes)
+
+  app.use(rotaNaoEncontrada)
+  app.use(tratarErros)
+
+  return app
+}

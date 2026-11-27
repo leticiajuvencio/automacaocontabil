@@ -1,0 +1,178 @@
+// Banco da Contabilidade Frasson.
+// As 4 tabelas do modelo da Camila (banco_frasson.sql) mantêm os nomes de tabela e coluna.
+// Colunas e tabelas a mais são o que o front precisa guardar (marcadas com "novo").
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model UsuarioSistema {
+  id           Int      @id @default(autoincrement()) @map("id_usuario")
+  nome         String   @db.VarChar(100)
+  email        String   @unique @db.VarChar(150)
+  // só o hash do bcrypt, nunca a senha pura
+  senha        String   @db.VarChar(255)
+  dataCadastro DateTime @default(now()) @map("data_cadastro") @db.Timestamp(6)
+  // novo: admin vê a tela de usuários
+  admin        Boolean  @default(false)
+
+  arquivos ArquivoProcessado[]
+
+  @@map("usuarios_sistema")
+}
+
+model EmpresaCliente {
+  id           Int      @id @default(autoincrement()) @map("id_empresa")
+  razaoSocial  String   @map("razao_social") @db.VarChar(150)
+  // pode ficar vazio: a empresa criada pelo PDF às vezes vem sem CNPJ
+  cnpj         String?  @unique @db.VarChar(18)
+  dataCadastro DateTime @default(now()) @map("data_cadastro") @db.Timestamp(6)
+
+  // novo: o que a empresa usa para montar o TXT do Domínio
+  codigoDominio    String @default("") @map("codigo_dominio") @db.VarChar(20)
+  contaEntrada     String @default("") @map("conta_entrada") @db.VarChar(20)
+  historicoEntrada String @default("") @map("historico_entrada") @db.VarChar(20)
+  contaSaida       String @default("") @map("conta_saida") @db.VarChar(20)
+  historicoSaida   String @default("") @map("historico_saida") @db.VarChar(20)
+  // ignorar | contabilizar (aplicação automática do BB)
+  rendeFacil       String @default("ignorar") @map("rende_facil") @db.VarChar(20)
+  contaAplicacao   String @default("") @map("conta_aplicacao") @db.VarChar(20)
+  // separador, codificação, abas do Excel... (OpcoesArquivo do front)
+  opcoes           Json   @default("{}")
+
+  // novo: vínculo com a API do Domínio (vazio enquanto não ativar)
+  dominioChave      String?   @map("dominio_chave") @db.VarChar(100)
+  dominioEscritorio String    @default("") @map("dominio_escritorio") @db.VarChar(150)
+  dominioNome       String    @default("") @map("dominio_nome") @db.VarChar(150)
+  dominioCnpj       String    @default("") @map("dominio_cnpj") @db.VarChar(18)
+  dominioAtivadoEm  DateTime? @map("dominio_ativado_em") @db.Timestamp(6)
+
+  contas   ContaBancaria[]
+  regras   RegraEmpresa[]
+  arquivos ArquivoProcessado[]
+  envios   EnvioDominio[]
+
+  @@map("empresas_clientes")
+}
+
+// novo: contas da empresa nos bancos
+model ContaBancaria {
+  id        Int    @id @default(autoincrement()) @map("id_conta")
+  empresaId Int    @map("id_empresa")
+  banco     String @db.VarChar(60)
+  agencia   String @db.VarChar(20)
+  conta     String @db.VarChar(30)
+  // código reduzido da conta do banco no plano de contas do Domínio
+  codigo    String @db.VarChar(20)
+
+  empresa EmpresaCliente @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId])
+  @@map("contas_bancarias")
+}
+
+// novo: palavra no histórico -> conta contábil
+model RegraEmpresa {
+  id        Int    @id @default(autoincrement()) @map("id_regra")
+  empresaId Int    @map("id_empresa")
+  // vale a primeira regra que bater, então a ordem importa
+  ordem     Int
+  termo     String @db.VarChar(100)
+  descricao String @db.VarChar(150)
+  conta     String @db.VarChar(20)
+  historico String @db.VarChar(20)
+
+  empresa EmpresaCliente @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId])
+  @@map("regras_empresa")
+}
+
+model ArquivoProcessado {
+  id             Int      @id @default(autoincrement()) @map("id_arquivo")
+  empresaId      Int      @map("id_empresa")
+  usuarioId      Int      @map("id_usuario")
+  nomeArquivo    String   @map("nome_arquivo") @db.VarChar(255)
+  dataUpload     DateTime @default(now()) @map("data_upload") @db.Timestamp(6)
+  // processando | revisao | concluido | erro
+  status         String   @db.VarChar(30)
+  caminhoArquivo String   @map("caminho_arquivo") @db.Text
+
+  // novo: o que o front leu do PDF
+  competencia String @db.VarChar(7) // mm/aaaa
+  banco       String @default("") @db.VarChar(60)
+  metodo      String @default("") @db.VarChar(100)
+  aviso       String @default("") @db.Text
+  // agência, conta, período e saldos que estavam no PDF
+  info        Json   @default("{}")
+  textoPdf    String @default("") @map("texto_pdf") @db.Text
+
+  empresa EmpresaCliente @relation(fields: [empresaId], references: [id], onDelete: Restrict)
+  usuario UsuarioSistema @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  linhas  LinhaExtrato[]
+
+  @@index([empresaId])
+  @@index([usuarioId])
+  @@map("arquivos_processados")
+}
+
+model LinhaExtrato {
+  id            Int      @id @default(autoincrement()) @map("id_linha")
+  arquivoId     Int      @map("id_arquivo")
+  dataMovimento DateTime @map("data_movimento") @db.Date
+  historico     String   @db.Text
+  // sempre positivo; o sentido vem do tipo
+  valor         Decimal  @db.Decimal(15, 2)
+  // C = entrada na conta, D = saída
+  tipo          String   @db.VarChar(20)
+  revisado      Boolean  @default(false)
+
+  // novo
+  detalhe       String  @default("") @db.Text
+  documento     String  @default("") @db.VarChar(60)
+  // extrato | saldo | secao | deduzido | manual
+  origemTipo    String  @default("extrato") @map("origem_tipo") @db.VarChar(20)
+  // false = fica fora do TXT
+  incluir       Boolean @default(true)
+  // conta digitada na revisão (vazio = usa a regra)
+  contrapartida String  @default("") @db.VarChar(20)
+
+  arquivo ArquivoProcessado @relation(fields: [arquivoId], references: [id], onDelete: Cascade)
+
+  @@index([arquivoId])
+  @@map("linhas_extrato")
+}
+
+// novo: token do dia da API do Domínio. A Domínio pede 1 token por dia para o sistema inteiro,
+// então só existe uma linha (id 1), trocada quando o token vence.
+model TokenDominio {
+  id       Int      @id
+  token    String   @db.Text
+  geradoEm DateTime @map("gerado_em") @db.Timestamp(6)
+  expiraEm DateTime @map("expira_em") @db.Timestamp(6)
+
+  @@map("token_dominio")
+}
+
+// novo: cada lote de XML enviado para a API do Domínio
+model EnvioDominio {
+  // id do lote que a API do Domínio devolve
+  id           String    @id @db.VarChar(40)
+  empresaId    Int       @map("id_empresa")
+  // nomes dos XML que foram no lote
+  arquivos     String[]
+  enviadoEm    DateTime  @default(now()) @map("enviado_em") @db.Timestamp(6)
+  // status que a API devolveu, ex.: "Arquivo armazenado na API."
+  mensagem     String    @db.Text
+  consultadoEm DateTime? @map("consultado_em") @db.Timestamp(6)
+
+  empresa EmpresaCliente @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId])
+  @@map("envios_dominio")
+}

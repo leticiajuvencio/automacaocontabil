@@ -1,0 +1,34 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+
+/* Cores e fonte do protótipo no Figma (Telas automação contábil) */
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-fundo: #f4f4f2;
+  --color-borda: #e6e6e3;
+  --color-linha: #f2f2f0;
+  --color-campo: #fafafa;
+  --color-texto: #1c1c1c;
+  --color-suave: #6b6b6b;
+  --color-apagado: #a3a29e;
+
+  --color-marca: #ea6a28;
+  --color-marca-escura: #c2410c;
+  --color-marca-clara: #fdead9;
+  --color-marca-fundo: #fdf1e7;
+
+  --color-alerta: #a16207;
+  --color-alerta-clara: #fdf0d5;
+  --color-ok: #15803d;
+  --color-ok-forte: #16a34a;
+  --color-ok-clara: #dcfce7;
+  --color-erro: #b91c1c;
+  --color-erro-clara: #fee2e2;
+}
+
+@layer base {
+  body {
+    @apply bg-fundo text-texto antialiased;
+  }
+}
